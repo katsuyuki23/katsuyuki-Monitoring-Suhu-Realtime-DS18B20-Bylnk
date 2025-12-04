@@ -1,55 +1,129 @@
-# katsuyuki-Monitoring-Suhu-Realtime-DS18B20-Bylnk
-IoT-based temperature monitoring system that utilizes the DS18B20 sensor as a source of high-precision thermal data. Temperature data is sent in real time via a WiFi connection to the Blynk platform, enabling temperature visualization, logging and automatic notifications.
+# 🌡️ **katsuyuki — Monitoring Suhu Realtime DS18B20 + Blynk**
 
-🔧 Components & Preparation
+Sistem IoT untuk memantau suhu secara realtime menggunakan sensor **DS18B20** dan pengiriman data melalui **WiFi** ke platform **Blynk**. Menyediakan visualisasi suhu, logging, dan notifikasi otomatis.
 
-DS18B20 (waterproof or non-waterproof) + 4.7 kΩ resistor as pull-up.
+---
 
-ESP8266 / ESP32 boards.
+## 🚀 **Fitur Utama**
 
-Jumper cables, breadboard (optional).
+* Monitoring suhu realtime lewat Blynk Dashboard (Mobile/Web).
+* Sensor **DS18B20** dengan akurasi tinggi (±0.5°C).
+* Kompatibel dengan **ESP8266** & **ESP32**.
+* Bisa diperluas: logging, alarm suhu, multi-sensor.
 
-Arduino IDE + libraries: OneWire.h, DallasTemperature.h, and Blynk libraries (e.g. BlynkSimpleEsp8266.h or BlynkSimpleEsp32.h) 
+---
 
-Blynk account & configuration: create a new project in Blynk → get an Auth Token — it will be inserted into the code. 
+## 🔧 **Hardware yang Dibutuhkan**
 
-DS18B20 Wiring → ESP:
+* ESP8266 / ESP32.
+* Sensor DS18B20 (waterproof/non‑waterproof).
+* Resistor 4.7 kΩ (pull‑up).
+* Jumper wires.
+* Breadboard (opsional).
 
-DS18B20 pins ESP pins
-VCC 3.3 V (or 5 V depending on board)
-GND GND
-Data of one of the digital GPIOs (example D4 on ESP8266) + pull-up to VCC with 4.7 kΩ resistor
+---
 
-| DS18B20 pins | ESP pins |
-| ----------- | -------------------------------------------------------------------------------------------------------------- |
-| VCC | 3.3 V (or 5 V depending on board) |
-| GND | GND |
-| Data | one digital GPIO (example D4 on ESP8266) + pull-up to VCC with 4.7 kΩ resistor ([mjrobot.org][1]) |
+## 🔌 **Wiring DS18B20 → ESP**
 
-⚙️ Set-up in Blynk App
+| DS18B20 | ESP                      | Catatan                           |
+| ------- | ------------------------ | --------------------------------- |
+| VCC     | 3.3V / 5V                | Sesuai board                      |
+| GND     | GND                      | —                                 |
+| DATA    | GPIO (contoh D4 ESP8266) | Wajib pakai pull‑up 4.7 kΩ ke VCC |
 
-Open Blynk → create a new project with a suitable board (ESP8266/ESP32) + WiFi connection. 
+```
+DS18B20 DATA ---[4.7kΩ]--- VCC
+```
 
-Get Auth Token, then enter it in the code.
+---
 
-Add widget (Gauge / Value) → connect to Virtual Pin V0 (or another pin according to the code).
+## 📲 **Setup di Blynk (IoT Platform)**
 
-Run the project (tap “Play”) → if the hardware & connection is correct → the temperature will appear in real-time.
+1. Buat **Template baru** → pilih board (ESP8266/ESP32).
+2. Masukkan WiFi + Auth Token (didapat dari Blynk).
+3. Buat **Datastream Virtual Pin V0** (type: Double / Numeric).
+4. Tambahkan widget **Gauge** → hubungkan ke `V0`.
+5. Save & Run.
 
-📈 Explanation & Tips
+---
 
-DS18B20 uses 1-Wire protocol → allows multiple sensors on one data path (if more than one sensor is needed). 
+## 🧠 **Penjelasan Singkat**
 
-Accuracy: −55°C to +125°C, up to 12-bit resolution → ±0.5°C accurate within normal range. 
+* DS18B20 memakai protokol **1‑Wire** → satu pin data bisa untuk banyak sensor.
+* Pembacaan suhu → diproses ESP → dikirim ke Blynk via `virtualWrite(V0, nilaiSuhu)`.
+* Refresh data default: setiap 1 detik.
+* Stabilitas koneksi WiFi sangat berpengaruh.
 
-The data reading & sending interval can be adjusted (for example every 1 second as in the code).
+---
 
-If WiFi or Blynk connection is lost → temperature data will fail to send — ensure stable connection / error responsibility.
+## 🧩 **Kode Contoh (Minimalist & Clean)**
 
-🔄 Adaptations & Extensions
+```cpp
+#include <OneWire.h>
+#include <DallasTemperature.h>
+#include <WiFi.h>
+#include <BlynkSimpleEsp32.h>
+// ESP8266: gunakan BlynkSimpleEsp8266.h
 
-Can use ESP32 (replace BlynkSimpleEsp8266.h with BlynkSimpleEsp32.h + DS18B20 pin according to the board).
+char auth[] = "BLYNK_TOKEN";
+char ssid[] = "WIFI_SSID";
+char pass[] = "WIFI_PASS";
 
-Add logging (for example to SD-card / database) or threshold alert: send notification via Blynk when the temperature exceeds the limit.
+#define ONE_WIRE_BUS 4 // GPIO4 / D4
+OneWire oneWire(ONE_WIRE_BUS);
+DallasTemperature sensors(&oneWire);
 
-Can be combined with other sensors (humidity, light, etc.) for complete environmental monitoring.
+BlynkTimer timer;
+
+void sendTemp() {
+    sensors.requestTemperatures();
+    float t = sensors.getTempCByIndex(0);
+    Blynk.virtualWrite(V0, t);
+}
+
+void setup() {
+    Serial.begin(115200);
+    sensors.begin();
+    Blynk.begin(auth, ssid, pass);
+    timer.setInterval(1000L, sendTemp);
+}
+
+void loop() {
+    Blynk.run();
+    timer.run();
+}
+```
+
+---
+
+## 📈 **Troubleshooting Cepat**
+
+* Gauge tidak bergerak → cek datastream harus `V0`.
+* Nilai `-127°C` → sensor tidak terbaca / wiring salah.
+* Nilai freeze → WiFi drop / perangkat offline.
+* Jangan pakai `delay()` besar → gunakan `BlynkTimer`.
+
+---
+
+## 🔮 **Pengembangan Lanjutan**
+
+* Multi-sensor DS18B20 dalam satu pin data.
+* Alarm suhu → Push Notification Blynk.
+* Logging ke database (InfluxDB / Firebase).
+* Integrasi dashboard grafis (Grafana / Blynk Chart).
+
+---
+
+## 🏁 **Status Proyek**
+
+Aktif & dapat diperluas sesuai kebutuhan.
+
+---
+
+## 👤 **Author**
+
+**katsuyuki — IoT Implementation & Monitoring System**
+
+---
+
+Siap dipublish sebagai README proyek GitHub.
