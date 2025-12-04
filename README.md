@@ -126,4 +126,4 @@ Aktif & dapat diperluas sesuai kebutuhan.
 
 ---
 
-Siap dipublish sebagai README proyek GitHub.
+dipublish sebagai README proyek GitHub.
